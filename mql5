@@ -1,0 +1,125 @@
+
+// Silver Bullet EA 3.0
+// Developer's Site: forexroboteasy.com
+// Development Name: Forex Robot Easy Team
+
+// Include necessary libraries
+#include <Trade\Trade.mqh>
+#include <DateTime\DateTime.mqh>
+
+// Define constants
+#define CONTINUATION_ENTRY 0
+#define REVERSAL_ENTRY 1
+#define CLASSIC_ENTRY 2
+
+// Define global variables
+CTrade trade; // Trade object
+int entryModel; // Entry model to be used
+
+// Entry model functions
+void ContinuationEntry(double previousHigh, double previousLow, double currentPrice)
+{
+    if (currentPrice > previousHigh)
+    {
+        // Execute trade in the same direction
+        trade.Buy();
+    }
+    else if (currentPrice < previousLow)
+    {
+        // Execute trade in the same direction
+        trade.Sell();
+    }
+}
+
+void ReversalEntry(double previousHigh, double previousLow, double currentPrice)
+{
+    double liquidityLevel = 0;
+
+    if (currentPrice > previousHigh)
+    {
+        // Seek liquidity taken from above
+        liquidityLevel = previousHigh;
+    }
+    else if (currentPrice < previousLow)
+    {
+        // Seek liquidity taken from below
+        liquidityLevel = previousLow;
+    }
+
+    if (liquidityLevel != 0)
+    {
+        // Execute trade at liquidity level
+        trade.BuyStop(liquidityLevel + 10 * _Point, 0);
+        trade.SellStop(liquidityLevel - 10 * _Point, 0);
+    }
+}
+
+void ClassicEntry(double previousHigh, double previousLow, double currentPrice)
+{
+    // Implement your classic entry strategy here
+    // Example: Execute trade when current price crosses above previous high
+    if (currentPrice > previousHigh)
+    {
+        trade.Buy();
+    }
+}
+
+// Entry model selection function
+void SelectEntryModel(int model)
+{
+    entryModel = model;
+}
+
+// OnTick event handler
+void OnTick()
+{
+    double previousHigh = iHigh(NULL, PERIOD_H1, 1);
+    double previousLow = iLow(NULL, PERIOD_H1, 1);
+    double currentPrice = iClose(NULL, PERIOD_H1, 0);
+
+    // Select entry model
+    SelectEntryModel(CONTINUATION_ENTRY);
+
+    // Execute trade based on selected entry model
+    if (entryModel == CONTINUATION_ENTRY)
+    {
+        ContinuationEntry(previousHigh, previousLow, currentPrice);
+    }
+    else if (entryModel == REVERSAL_ENTRY)
+    {
+        ReversalEntry(previousHigh, previousLow, currentPrice);
+    }
+    else if (entryModel == CLASSIC_ENTRY)
+    {
+        ClassicEntry(previousHigh, previousLow, currentPrice);
+    }
+}
+
+// Initialization function
+int OnInit()
+{
+    // Initialize trade object
+    trade = new CTrade();
+
+    return(INIT_SUCCEEDED);
+}
+
+// Deinitialization function
+void OnDeinit(const int reason)
+{
+    // Cleanup trade object
+    delete trade;
+}
+
+// Program entry point
+void OnStart()
+{
+    // Start trading
+    trade.SetExpertMagicNumber(123);
+    trade.SetMarginMode(MARGIN_MODE_RETAIL_NETTING);
+    trade.SetDeviationInPoints(10);
+    trade.SetTypeFilling(ORDER_FILLING_FOK);
+
+    // Register OnTick event handler
+    EventSetTimer(1);
+}
